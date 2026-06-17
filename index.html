@@ -897,18 +897,13 @@ function checkAvailability(){
   const rt=document.getElementById('roomType').value;
   if(!ci||!co){alert('Please select check-in and check-out dates.');return;}
   if(new Date(co)<=new Date(ci)){alert('Check-out must be after check-in.');return;}
-  const nights=Math.round((new Date(co)-new Date(ci))/(1000*60*60*24));
-  const msg=encodeURIComponent(`Hi Hotel Classic! 🏨
-
-I'd like to check availability:
-📅 Check-In: ${ci}
-📅 Check-Out: ${co} (${nights} night${nights>1?'s':''})
-👤 Adults: ${ad}
-👦 Children: ${ch}
-🛏 Room Type: ${rt}
-
-Please confirm availability and rates.`);
-  window.open('https://wa.me/919697098970?text='+msg,'_blank');
+  // Build booking.html URL with all params pre-filled
+  const roomSlug = rt==='Standard Room'?'standard':rt==='Deluxe Room'?'deluxe':rt==='Suite Room'?'suite':'';
+  const params = new URLSearchParams({
+    checkin: ci, checkout: co, adults: ad, children: ch
+  });
+  if(roomSlug) params.set('room', roomSlug);
+  window.location.href = 'booking.html?' + params.toString();
 }
 
 /* ── Newsletter ── */

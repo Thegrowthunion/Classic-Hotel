@@ -335,6 +335,30 @@ textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,146,42,.1)
   .footer-grid{grid-template-columns:1fr;}
   .tb-left{display:none;}
 }
+
+/* ── PRE-SELECTED ROOM BANNER ── */
+.presel-banner{display:none;background:linear-gradient(90deg,var(--green) 0%,var(--green2) 100%);
+  border-radius:var(--r);padding:14px 20px;margin-bottom:22px;
+  align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.presel-banner.show{display:flex;}
+.presel-left{display:flex;align-items:center;gap:12px;}
+.presel-icon{width:38px;height:38px;border-radius:50%;background:rgba(200,146,42,.25);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.presel-icon i{color:var(--gold);font-size:.95rem;}
+.presel-text label{display:block;font-size:.65rem;letter-spacing:1.5px;text-transform:uppercase;
+  color:rgba(255,255,255,.55);margin-bottom:3px;}
+.presel-text strong{font-size:.95rem;font-weight:600;color:var(--white);}
+.presel-change{font-size:.72rem;color:rgba(255,255,255,.55);cursor:pointer;
+  text-decoration:underline;white-space:nowrap;}
+.presel-change:hover{color:var(--gold);}
+
+/* Step 2 — auto-highlight pre-selected room */
+.room-card.preselected-highlight{border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(200,146,42,.15);}
+.presel-tag{display:inline-flex;align-items:center;gap:5px;background:var(--gold);
+  color:var(--white);padding:3px 10px;border-radius:12px;font-size:.66rem;
+  font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-left:8px;vertical-align:middle;}
+
 </style>
 </head>
 <body>
@@ -438,6 +462,18 @@ textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,146,42,.1)
               <div><h2>Select Dates &amp; Guests</h2><p>Choose your check-in, check-out and number of guests</p></div>
             </div>
             <div class="card-body">
+
+              <!-- PRE-SELECTED ROOM BANNER -->
+              <div class="presel-banner" id="preselBanner">
+                <div class="presel-left">
+                  <div class="presel-icon"><i class="fas fa-bed"></i></div>
+                  <div class="presel-text">
+                    <label>Room Pre-Selected</label>
+                    <strong id="preselRoomName">—</strong>
+                  </div>
+                </div>
+                <span class="presel-change" onclick="clearPresel()">Change room ✕</span>
+              </div>
 
               <div class="date-grid">
                 <div class="field-group" id="fg-checkin">
@@ -1197,6 +1233,8 @@ function goStep(n){
     const co=document.getElementById('checkout').value;
     document.getElementById('step2Subtitle').textContent=
       fmtDate(ci)+' → '+fmtDate(co)+' · '+state.nights+' Night'+(state.nights>1?'s':'')+' · '+state.adults+' Guest'+(state.adults>1?'s':'');
+    // Auto-select pre-selected room if arriving from a room page
+    if(window._autoSelectRoom){ window._autoSelectRoom(); window._autoSelectRoom=null; }
   }
   if(n===4) buildReview();
   window.scrollTo({top:0,behavior:'smooth'});
@@ -1394,6 +1432,90 @@ function checkStepLabels(){
 }
 checkStepLabels();
 window.addEventListener('resize',checkStepLabels);
+
+/* ══ PRE-SELECTION FROM URL PARAMS ══════════════════════════════════
+   e.g. booking.html?room=standard  (from room detail pages)
+══════════════════════════════════════════════════════════════════ */
+(function(){
+  const params = new URLSearchParams(window.location.search);
+
+  /* ── Pre-fill dates from homepage availability widget ── */
+  const ciParam = params.get('checkin');
+  const coParam = params.get('checkout');
+  const adParam = params.get('adults');
+  const chParam = params.get('children');
+  if(ciParam){
+    const ciEl = document.getElementById('checkin');
+    const coEl = document.getElementById('checkout');
+    if(ciEl && ciParam) { ciEl.value = ciParam; }
+    if(coEl && coParam) { coEl.value = coParam; }
+    if(adParam){ const a = document.getElementById('adults'); if(a) a.value = adParam; }
+    if(chParam){ const c = document.getElementById('children'); if(c) c.value = chParam; }
+    // Trigger night calculation
+    setTimeout(calcNights, 100);
+  }
+
+  /* ── Pre-select room from room page ── */
+  const roomParam = params.get('room'); // 'standard' | 'deluxe' | 'suite'
+  if(!roomParam) return;
+
+  const roomMap = {
+    'standard': { key:'standard', name:'Standard Room — ₹899/night' },
+    'deluxe':   { key:'deluxe',   name:'Deluxe Room — ₹1,299/night'  },
+    'suite':    { key:'suite',    name:'Suite Room — ₹2,299/night'    },
+  };
+  const match = roomMap[roomParam.toLowerCase()];
+  if(!match) return;
+
+  // Store the preselected room
+  window._preselRoom = match.key;
+
+  // Show the banner on Step 1
+  const banner = document.getElementById('preselBanner');
+  const nameEl = document.getElementById('preselRoomName');
+  if(banner && nameEl){
+    banner.classList.add('show');
+    nameEl.textContent = match.name;
+  }
+
+  // When Step 2 loads, auto-select that room & highlight card
+  /* ── If dates already provided, skip directly to Step 2 ── */
+  if(ciParam && coParam){
+    setTimeout(()=>{
+      goStep(2);
+    }, 300);
+  }
+
+  window._autoSelectRoom = function(){
+    selectRoom(match.key);
+    // Highlight the card visually
+    const card = document.getElementById('rc-' + match.key);
+    if(card) card.classList.add('preselected-highlight');
+    // Add a "Pre-selected" tag to the room title
+    const h3 = card ? card.querySelector('h3') : null;
+    if(h3 && !h3.querySelector('.presel-tag')){
+      h3.insertAdjacentHTML('beforeend','<span class="presel-tag"><i class="fas fa-check"></i> Pre-selected</span>');
+    }
+    // Smooth scroll to room cards
+    setTimeout(()=>{ if(card) card.scrollIntoView({behavior:'smooth', block:'center'}); }, 200);
+  };
+})();
+
+function clearPresel(){
+  window._preselRoom = null;
+  window._autoSelectRoom = null;
+  const banner = document.getElementById('preselBanner');
+  if(banner) banner.classList.remove('show');
+  // Clear room selection
+  state.room = null;
+  document.querySelectorAll('.room-card').forEach(c=>c.classList.remove('selected','preselected-highlight'));
+  document.querySelectorAll('.select-btn').forEach(b=>b.textContent='Select Room');
+  document.querySelectorAll('.presel-tag').forEach(t=>t.remove());
+  document.getElementById('step2Next').disabled = true;
+  document.getElementById('addonsSection').style.display = 'none';
+  updateSidebar();
+}
+
 </script>
 </body>
 </html>

@@ -278,7 +278,7 @@ ul{list-style:none;}
     <div class="book-bar-inner">
       <div class="book-bar-text">
         <h3>Suite Room — From ₹2,299/night</h3>
-        <p>Only 6 rooms available · Direct booking = best rate guaranteed</p>
+        <p>Only 6 rooms available · Secure online booking — instant confirmation</p>
       </div>
       <div class="book-bar-actions">
         <button class="btn btn-gold" onclick="bookNow('Suite Room')"><i class="fas fa-calendar-check"></i>Book Now</button>
@@ -467,7 +467,7 @@ ul{list-style:none;}
 <!-- ═══ FLOATING BUTTONS ════════════════════════════════ -->
 <div class="float-btns">
   <a href="tel:+919697098970" class="float-btn float-call" title="Call Hotel Classic"><i class="fas fa-phone-alt"></i></a>
-  <a href="https://wa.me/919697098970?text=Hi%20Hotel%20Classic%21%20I%20would%20like%20to%20check%20room%20availability.%20Please%20assist." target="_blank" class="float-btn float-wa" title="WhatsApp Us"><i class="fab fa-whatsapp"></i></a>
+  <a href="https://wa.me/919697098970?text=Hi%20Hotel%20Classic%21%20I%20have%20a%20query%20about%20my%20stay.%20Can%20you%20help%3F" target="_blank" class="float-btn float-wa" title="WhatsApp Us"><i class="fab fa-whatsapp"></i></a>
 </div>
 
 <script>
@@ -477,9 +477,17 @@ window.addEventListener('scroll',()=>document.getElementById('mainNav').classLis
 const hb=document.getElementById('hb'),nm=document.getElementById('nm'),cnv=document.getElementById('cnv');
 if(hb){hb.onclick=()=>{hb.classList.toggle('open');nm.classList.toggle('open');};cnv.onclick=()=>{hb.classList.remove('open');nm.classList.remove('open');};}
 /* WhatsApp */
+/* ── Booking redirect: straight to booking.html with room pre-selected ── */
 function bookNow(room){
-  const msg=encodeURIComponent('Hi Hotel Classic! I would like to enquire about '+room+'. Please share availability and rates. Thank you!');
-  window.open('https://wa.me/919697098970?text='+msg,'_blank');
+  const today     = new Date();
+  const tomorrow  = new Date(today); tomorrow.setDate(today.getDate()+1);
+  const fmt = d => d.toISOString().split('T')[0];
+  const params = new URLSearchParams({
+    room:     'suite',
+    checkin:  fmt(today),
+    checkout: fmt(tomorrow)
+  });
+  window.location.href = 'booking.html?' + params.toString();
 }
 
 </script>
